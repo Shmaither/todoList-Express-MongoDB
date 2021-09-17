@@ -15,7 +15,7 @@ app.use(express.static("public"));
 // Connecting to mongodb Atlas
 // change <password> for the one of that specific admin
 // remove everything after mongodb.net/ and add your database name
-mongoose.connect("mongodb+srv://admin-shmaither:Test123@cluster0.inmlt.mongodb.net/todolistDB");
+mongoose.connect("mongodb+srv://admin-shmaither:Test123@cluster0.inmlt.mongodb.net/todolistDB", {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
 
 // First Schema
 const itemsSchema = new mongoose.Schema({
