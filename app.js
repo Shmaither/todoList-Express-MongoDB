@@ -22,9 +22,7 @@ app.use(express.static("public"));
 //   useNewUrlParser: true
 // });
 
-mongoose.connect("mongodb+srv://admin-shmaither:Test123@cluster0.inmlt.mongodb.net/todolistDB", {
-  useNewUrlParser: true
-});
+mongoose.connect("mongodb+srv://admin-shmaither:Test123@cluster0.inmlt.mongodb.net/todolistDB", {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
 
 // First Schema
 const itemsSchema = new mongoose.Schema({
