@@ -8,6 +8,7 @@ const _ = require("lodash");
 const app = express();
 
 app.set('view engine', 'ejs');
+app.engine('ejs', require('ejs'._express));
 
 app.use(bodyParser.urlencoded({
   extended: true
