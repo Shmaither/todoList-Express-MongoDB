@@ -9,13 +9,21 @@ const app = express();
 
 app.set('view engine', 'ejs');
 
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
 app.use(express.static("public"));
 
 // Connecting to mongodb Atlas
 // change <password> for the one of that specific admin
 // remove everything after mongodb.net/ and add your database name
-mongoose.connect("mongodb+srv://admin-shmaither:Test123@cluster0.inmlt.mongodb.net/todolistDB", {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
+// mongoose.connect('mongodb://localhost:27017/todolistDB', {
+//   useNewUrlParser: true
+// });
+
+mongoose.connect("mongodb+srv://admin-shmaither:Test123@cluster0.inmlt.mongodb.net/todolistDB", {
+  useNewUrlParser: true
+});
 
 // First Schema
 const itemsSchema = new mongoose.Schema({
@@ -27,10 +35,18 @@ const Item = mongoose.model("Item", itemsSchema);
 
 // Creating documents
 const item1 = new Item({
-  name: "Example item..."
+  name: "Welcome to the todoList..."
 });
 
-const defaultItems = [item1];
+const item2 = new Item({
+  name: "Add some new items..."
+});
+
+const item3 = new Item({
+  name: "Click the checkbox to delete them..."
+});
+
+const defaultItems = [item1, item2, item3];
 
 // Second Schema
 const listSchema = new mongoose.Schema({
@@ -41,38 +57,39 @@ const listSchema = new mongoose.Schema({
 // Second ModelSchema
 const List = mongoose.model("List", listSchema);
 
-app.get("/", function(req, res) {
+app.get("/", async (req, res) => {
 
-  Item.find({}, (err, foundItems) => {
+  const foundItems = await Item.find({});
 
-    if (!err){
       if (foundItems.length === 0) {
+        try {
+          await Item.insertMany(defaultItems);
+          console.log("Succesfully saved all items into todolistDB");
 
-        Item.insertMany(defaultItems, (err) => {
-          if (err) {
-            console.log(err);
-          } else {
-            console.log("Succesfully saved all items into todolistDB");
-          }
-        });
-        res.redirect("/");
+        } catch (err) {
+          console.log(err);
+        }
+
+        return res.redirect("/");
+
       } else {
-        res.render("list", {listTitle: "Today", newListItems: foundItems});
-      }
 
-    }
-  });
+        res.render("list", {
+          listTitle: "Today",
+          newListItems: foundItems
+        });
+      }
 
 });
 
 // Express Route Parameters
-app.get("/:customListName", async(req, res) => {
+app.get("/:customListName", (req, res) => {
   const customListName = _.capitalize(req.params.customListName);
 
-  const foundList = await List.findOne({ name: customListName }).exec();
-
-  //List.findOne({name: customListName}, (err, foundList) => {
-  //  if (!err) {
+  List.findOne({
+    name: customListName
+  }, (err, foundList) => {
+    if (!err) {
       if (!foundList) {
         // Create a new list
         const list = new List({
@@ -80,20 +97,26 @@ app.get("/:customListName", async(req, res) => {
           items: defaultItems
         });
         // Saving the list on database
-        list.save();
+        list.save(() => {
+          // Reloading the new route with data from database
+          // once the save has finished.
+          return res.redirect("/" + customListName);
+        });
 
-        // Reloading the new route with data from database
-        res.redirect("/" + customListName);
+
       } else {
         // Show an existing list
-        res.render("list", {listTitle: foundList.name, newListItems: foundList.items});
+        res.render("list", {
+          listTitle: foundList.name,
+          newListItems: foundList.items
+        });
       }
-    //}
-  //});
+    }
+  });
 
 });
 
-app.post("/", function(req, res){
+app.post("/", function(req, res) {
 
   const itemName = req.body.newItem;
   const listName = req.body.list;
@@ -107,7 +130,9 @@ app.post("/", function(req, res){
     item.save();
     res.redirect("/");
   } else {
-    List.findOne({name: listName}, (err, foundList) =>{
+    List.findOne({
+      name: listName
+    }, (err, foundList) => {
       foundList.items.push(item);
       // mongoose shortcut for saving the document into the lists collection
       foundList.save();
@@ -123,16 +148,22 @@ app.post("/delete", (req, res) => {
   if (listName === "Today") {
 
     Item.findByIdAndRemove(checkItemId, (err) => {
-      if (err) {
-        console.log(err);
-      } else {
+      if (!err) {
         console.log("Succesfully removed from database.");
         res.redirect("/");
       }
-    })
+    });
   } else {
     // $pull is an operator from mongodb
-    List.findOneAndUpdate({name: listName}, {$pull: {items: {_id: checkItemId}}}, (err) => {
+    List.findOneAndUpdate({
+      name: listName
+    }, {
+      $pull: {
+        items: {
+          _id: checkItemId
+        }
+      }
+    }, (err) => {
       if (!err) {
         res.redirect("/" + listName);
       }
@@ -143,16 +174,16 @@ app.post("/delete", (req, res) => {
 
 });
 
-app.get("/about", function(req, res){
+app.get("/about", function(req, res) {
   res.render("about");
 });
 
-let port = process.env.PORT;
-if (port == null || port == "") {
-  port = 3000;
-}
-app.listen(port);
+// let port = process.env.PORT;
+// if (port == null || port == "") {
+//   port = 3000;
+// }
+//app.listen(port);
 
-app.listen(port, function() {
+app.listen(3000, function() {
   console.log("Server has started succesfully.");
 });
